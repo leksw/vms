@@ -1,0 +1,64 @@
+version: "3.7"
+
+networks:
+  web:
+    driver: bridge
+  internal:
+    driver: bridge
+
+services:
+  api:
+    container_name: vms_api
+    build:
+      context: ./api
+    tty: true
+    volumes:
+      - ./api:/app
+    links:
+      - db
+    networks:
+      - internal
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    devices:
+      - /dev/video0:/dev/video0
+
+  db:
+    container_name: vms_db
+    image: postgres:alpine
+
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    networks:
+      - internal
+    volumes:
+      - ./.data/postgresql:/var/lib/postgresql/data
+      - ./db_entrypoint:/docker-entrypoint-initdb.d
+
+  adminer:
+    container_name: vms_adminer
+    image: adminer
+    env_file:
+      - .env
+    networks:
+      - internal
+
+  nginx:
+    container_name: vms_nginx
+    image: "nginx:stable"
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx:/etc/nginx/conf.d
+    networks:
+      - web
+      - internal
+
+    env_file:
+      - .env
+    links:
+      - adminer
