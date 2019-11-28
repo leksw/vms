@@ -14,30 +14,26 @@ services:
     tty: true
     volumes:
       - ./api:/app
-    links:
-      - db
     networks:
       - internal
     env_file:
       - .env
     ports:
       - "8000:8000"
-    devices:
-      - /dev/video0:/dev/video0
 
-  db:
-    container_name: vms_db
-    image: postgres:alpine
-
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+  zmq:
+    container_name: vms_zmq
+    build:
+      context: ./zmq
+    tty: true
+    volumes:
+      - ./zmq:/zmq
     networks:
       - internal
-    volumes:
-      - ./.data/postgresql:/var/lib/postgresql/data
-      - ./db_entrypoint:/docker-entrypoint-initdb.d
+    ports:
+      - "4444:4444"
+    devices:
+      - /dev/video0:/dev/video0
 
   adminer:
     container_name: vms_adminer
@@ -57,8 +53,8 @@ services:
     networks:
       - web
       - internal
-
     env_file:
       - .env
-    links:
+    depends_on:
       - adminer
+      - api

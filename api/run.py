@@ -2,7 +2,7 @@ import os
 from sanic import Sanic
 from sanic.response import html, stream
 
-from utils.camera import Camera
+from utils.client import Client
 
 app = Sanic()
 
@@ -14,9 +14,17 @@ async def index(request):
 
 @app.route("/camera-stream/")
 async def camera_stream(request):
-    camera = Camera()
+    camera = Client()
+
+    async def streaming_fn(response):
+        async for i in camera.recv_array():
+            await response.write(
+                b"--frame\r\n"
+                b"Content-Type: image/jpeg\r\n\r\n" + i + b"\r\n"
+            )
+
     return stream(
-        camera.stream, content_type="multipart/x-mixed-replace; boundary=frame"
+        streaming_fn, content_type="multipart/x-mixed-replace; boundary=frame"
     )
 
 
